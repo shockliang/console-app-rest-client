@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace console_app_rest_client
 {
@@ -28,25 +29,42 @@ namespace console_app_rest_client
                 })
                 .AddHttpClient("github", c =>
                 {
-                    c.BaseAddress = new Uri("https://api.github.com/orgs/dotnet/repos");
+                    c.BaseAddress = new Uri("https://api.github.com/");
                     c.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
                     c.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
-                });
+                })
+                .AddTypedClient<GithubClient>();
 
             var services = serviceCollection.BuildServiceProvider();
 
-            var githubClient = services
-                .GetRequiredService<IHttpClientFactory>()
-                .CreateClient("github");
+            // var githubClient = services
+            //     .GetRequiredService<IHttpClientFactory>()
+            //     .CreateClient("github");
 
-            ProcessRepositories(githubClient).GetAwaiter();
+            // ProcessRepositories(githubClient).GetAwaiter();
+
+            var github = services.GetRequiredService<GithubClient>();
+            ProcessRepositories(github).GetAwaiter();
 
             Console.ReadLine();
         }
 
+        private static async Task ProcessRepositories(GithubClient github)
+        {
+            var response = await github.GetData();
+            // var data = await response.Content.ReadAsAsync<JObject>();
+            var data = await response.Content.ReadAsStringAsync();
+
+            var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(data);
+            foreach (var repo in repositories)
+            {
+                Console.WriteLine($"Repo name:{repo.name} .Full Name:{repo.FullName}. URI:{repo.GitHubHomeUrl}");
+            }
+        }
+
         private static async Task ProcessRepositories(HttpClient client)
         {
-            var stringTask = client.GetStringAsync(client.BaseAddress);
+            var stringTask = client.GetStringAsync($"{client.BaseAddress}/orgs/dotnet/repos");
             var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(await stringTask);
             foreach (var repo in repositories)
             {
@@ -67,6 +85,29 @@ namespace console_app_rest_client
             foreach (var repo in repositories)
             {
                 Console.WriteLine($"Repo name:{repo.name} .Full Name:{repo.FullName}. URI:{repo.GitHubHomeUrl}");
+            }
+        }
+
+        private class GithubClient
+        {
+            public GithubClient(HttpClient httpClient)
+            {
+                HttpClient = httpClient;
+            }
+
+            public HttpClient HttpClient { get; }
+
+            // Gets the list of services on github.
+            public async Task<HttpResponseMessage> GetData()
+            {
+                // var request = new HttpRequestMessage(HttpMethod.Get, "/");
+                var request = new HttpRequestMessage(HttpMethod.Get, "/orgs/dotnet/repos");
+
+
+                var response = await HttpClient.SendAsync(request).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                return response;
             }
         }
     }
