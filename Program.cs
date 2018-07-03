@@ -37,12 +37,17 @@ namespace console_app_rest_client
 
             var services = serviceCollection.BuildServiceProvider();
 
+            // Simple http client.
+            // ProcessRepositories().GetAwaiter();
+
+            // Using http client factory to create client.
             // var githubClient = services
             //     .GetRequiredService<IHttpClientFactory>()
             //     .CreateClient("github");
 
             // ProcessRepositories(githubClient).GetAwaiter();
 
+            // Using typed http client that retrieved from DI container.
             var github = services.GetRequiredService<GithubClient>();
             ProcessRepositories(github).GetAwaiter();
 
@@ -56,20 +61,14 @@ namespace console_app_rest_client
             var data = await response.Content.ReadAsStringAsync();
 
             var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(data);
-            foreach (var repo in repositories)
-            {
-                Console.WriteLine($"Repo name:{repo.name} .Full Name:{repo.FullName}. URI:{repo.GitHubHomeUrl}");
-            }
+            PrintRepositories(repositories);
         }
 
         private static async Task ProcessRepositories(HttpClient client)
         {
             var stringTask = client.GetStringAsync($"{client.BaseAddress}/orgs/dotnet/repos");
             var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(await stringTask);
-            foreach (var repo in repositories)
-            {
-                Console.WriteLine($"Repo name:{repo.name} .Full Name:{repo.FullName}. URI:{repo.GitHubHomeUrl}");
-            }
+            PrintRepositories(repositories);
         }
 
         private static async Task ProcessRepositories()
@@ -82,6 +81,11 @@ namespace console_app_rest_client
             var stringTask = client.GetStringAsync("https://api.github.com/orgs/dotnet/repos");
 
             var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(await stringTask);
+            PrintRepositories(repositories);
+        }
+
+        private static void PrintRepositories(IEnumerable<Repo> repositories)
+        {
             foreach (var repo in repositories)
             {
                 Console.WriteLine($"Repo name:{repo.name} .Full Name:{repo.FullName}. URI:{repo.GitHubHomeUrl}");
