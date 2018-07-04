@@ -52,7 +52,11 @@ namespace console_app_rest_client
             // var github = services.GetRequiredService<GithubClient>();
             // ProcessRepositories(github).GetAwaiter();
 
-            UsingRestSharpClient();
+            // Rest sharp client using sync way
+            // UsingRestSharpClient();
+
+            // Rest sharp client using async way
+            UsingRestSharpClientAsync();
 
             Console.ReadLine();
         }
@@ -66,6 +70,19 @@ namespace console_app_rest_client
             var data = response.Content; // raw content as string
             var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(data);
             PrintRepositories(repositories);
+        }
+
+        private static void UsingRestSharpClientAsync()
+        {
+            var client = new RestClient("https://api.github.com/orgs/dotnet/repos");
+            var request = new RestRequest(Method.GET);
+            request.AddHeader("User-Agent", ".NET Foundation Repository Reporter");
+            client.ExecuteAsync(request, response =>
+            {
+                var data = response.Content; // raw content as string
+                var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(data);
+                PrintRepositories(repositories);
+            });
         }
 
         private static async Task ProcessRepositories(GithubClient github)
