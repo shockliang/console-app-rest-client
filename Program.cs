@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RestSharp;
 
 namespace console_app_rest_client
 {
@@ -48,10 +49,23 @@ namespace console_app_rest_client
             // ProcessRepositories(githubClient).GetAwaiter();
 
             // Using typed http client that retrieved from DI container.
-            var github = services.GetRequiredService<GithubClient>();
-            ProcessRepositories(github).GetAwaiter();
+            // var github = services.GetRequiredService<GithubClient>();
+            // ProcessRepositories(github).GetAwaiter();
+
+            UsingRestSharpClient();
 
             Console.ReadLine();
+        }
+
+        private static void UsingRestSharpClient()
+        {
+            var client = new RestClient("https://api.github.com/orgs/dotnet/repos");
+            var request = new RestRequest(Method.GET);
+            request.AddHeader("User-Agent", ".NET Foundation Repository Reporter");
+            var response = client.Execute(request);
+            var data = response.Content; // raw content as string
+            var repositories = JsonConvert.DeserializeObject<IEnumerable<Repo>>(data);
+            PrintRepositories(repositories);
         }
 
         private static async Task ProcessRepositories(GithubClient github)
