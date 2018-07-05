@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using Refit;
 
 namespace console_app_rest_client
 {
@@ -17,9 +18,10 @@ namespace console_app_rest_client
         private static readonly HttpClient client = new HttpClient();
 
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var serviceCollection = new ServiceCollection();
+            // Config origin http client.
             serviceCollection
                 .AddLogging(builder =>
                 {
@@ -56,9 +58,21 @@ namespace console_app_rest_client
             // UsingRestSharpClient();
 
             // Rest sharp client using async way
-            UsingRestSharpClientAsync();
+            // UsingRestSharpClientAsync();
+
+            // Refit client
+            await UsingRefitClient();
+
 
             Console.ReadLine();
+        }
+
+        private static async Task UsingRefitClient()
+        {
+            var gitHubApi = RestService.For<IGitHubApi>("https://api.github.com/");
+            var user = await gitHubApi.GetUser("octocat");
+            // var repositories = await gitHubApi.GetDotnetRepositories();
+            // PrintRepositories(repositories);
         }
 
         private static void UsingRestSharpClient()
@@ -144,6 +158,16 @@ namespace console_app_rest_client
 
                 return response;
             }
+        }
+
+        [Headers("User-Agent: Awesome Octocat App")]
+        public interface IGitHubApi
+        {
+            [Get("/orgs/dotnet/repos")]
+            Task<List<Repo>> GetDotnetRepositories();
+
+            [Get("/users/{user}")]
+            Task<User> GetUser(string user);
         }
     }
 
